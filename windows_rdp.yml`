@@ -1,0 +1,54 @@
+name: 🚀 High-Speed Windows RDP (Official Azure VM via Tailscale)
+
+on:
+  workflow_dispatch:
+    inputs:
+      tailscale_key:
+        description: 'Enter your Tailscale Auth Key (tskey-auth-...)'
+        required: true
+        default: ''
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 360
+
+    steps:
+    - name: ⚙️ Enable Windows Remote Desktop (RDP) & Configure User
+      run: |
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 0
+        net user runneradmin "Password123!"
+        net localgroup "Remote Desktop Users" runneradmin /add >$null 2>&1
+
+    - name: ⬇️ Install & Connect Tailscale
+      run: |
+        Invoke-WebRequest -Uri "https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe" -OutFile "tailscale-setup.exe"
+        Start-Process -FilePath "tailscale-setup.exe" -ArgumentList "/quiet" -Wait
+        $tailscaleExe = "C:\Program Files\Tailscale\tailscale.exe"
+        & $tailscaleExe up --authkey="${{ github.event.inputs.tailscale_key }}" --accept-routes
+        Start-Sleep -Seconds 3
+        $ip = (& $tailscaleExe ip -4)
+        
+        Write-Host ""
+        Write-Host "==================================================================" -ForegroundColor Cyan
+        Write-Host "🎉 AAPKA OFFICIAL WINDOWS SERVER RDP BILKUL READY HAI!" -ForegroundColor Green
+        Write-Host "==================================================================" -ForegroundColor Cyan
+        Write-Host "🖥️  RDP IP Address : $ip" -ForegroundColor Yellow
+        Write-Host "👤  Username       : runneradmin" -ForegroundColor White
+        Write-Host "🔑  Password       : Password123!" -ForegroundColor White
+        Write-Host "⚡  Speed          : 1 Gbps+ Direct Peer-to-Peer WireGuard Network" -ForegroundColor Green
+        Write-Host "⏱️  Duration       : 6 Hours (Max Limit)" -ForegroundColor Magenta
+        Write-Host "==================================================================" -ForegroundColor Cyan
+        Write-Host ""
+
+    - name: ⏳ Keep-Alive Runner (Up to 6 Hours Active)
+      run: |
+        $totalMinutes = 350
+        for ($i = 1; $i -le $totalMinutes; $i++) {
+            Start-Sleep -Seconds 60
+            if ($i % 10 -eq 0) {
+                Write-Host "🟢 Windows RDP Active: $i / $totalMinutes minutes"
+            }
+        }
